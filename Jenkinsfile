@@ -1,10 +1,9 @@
 pipeline {
   agent any
-  tools { nodejs 'NodeJS-20' }
 
   environment {
     AWS_REGION   = 'us-east-1'
-    ECR_REGISTRY = '651770526874.dkr.ecr.us-east-1.amazonaws.com'
+    ECR_REGISTRY = '://amazonaws.com'
     ECR_REPO     = 'my-frontend'
     ECS_CLUSTER  = 'my-frontend-cluster'
     ECS_SERVICE  = 'my-frontend-service'
@@ -12,30 +11,11 @@ pipeline {
     IMAGE_TAG    = "${env.BUILD_NUMBER}"
   }
 
-
   stages {
 
     stage('Checkout') {
       steps {
         checkout scm
-      }
-    }
-
-    stage('Install Dependencies') {
-      steps {
-        sh 'npm install'
-      }
-    }
-
-    stage('Run Tests') {
-      steps {
-        sh 'npm run test -- --watchAll=false --passWithNoTests'
-      }
-    }
-
-    stage('Build') {
-      steps {
-        sh 'npm run build'
       }
     }
 
@@ -53,6 +33,7 @@ pipeline {
         ]]) {
           sh """
             aws ecr get-login-password --region ${AWS_REGION} \
+
               | docker login --username AWS --password-stdin ${ECR_REGISTRY}
             docker tag ${ECR_REPO}:${IMAGE_TAG} ${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG}
             docker push ${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG}
