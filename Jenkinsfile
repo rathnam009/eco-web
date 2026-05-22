@@ -21,7 +21,7 @@ pipeline {
 
     stage('Docker Build') {
       steps {
-        sh "docker build -t ${ECR_REPO}:${IMAGE_TAG} ."
+        sh "docker build -t ${env.ECR_REPO}:${env.IMAGE_TAG} ."
       }
     }
 
@@ -32,9 +32,9 @@ pipeline {
           credentialsId: 'aws-creds'
         ]]) {
           sh """
-            aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
-            docker tag ${ECR_REPO}:${IMAGE_TAG} ${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG}
-            docker push ${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG}
+            aws ecr get-login-password --region ${env.AWS_REGION} | docker login --username AWS --password-stdin ${env.ECR_REGISTRY}
+            docker tag ${env.ECR_REPO}:${env.IMAGE_TAG} ${env.ECR_REGISTRY}/${env.ECR_REPO}:${env.IMAGE_TAG}
+            docker push ${env.ECR_REGISTRY}/${env.ECR_REPO}:${env.IMAGE_TAG}
           """
         }
       }
@@ -47,11 +47,11 @@ pipeline {
           credentialsId: 'aws-creds'
         ]]) {
           sh """
-            IMAGE_URI=${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG}
+            IMAGE_URI=${env.ECR_REGISTRY}/${env.ECR_REPO}:${env.IMAGE_TAG}
 
             TASK_DEF=\$(aws ecs describe-task-definition \
-              --task-definition ${TASK_FAMILY} \
-              --region ${AWS_REGION})
+              --task-definition ${env.TASK_FAMILY} \
+              --region ${env.AWS_REGION})
 
             NEW_TASK_DEF=\$(echo \$TASK_DEF | python3 -c "
 import sys, json
@@ -65,14 +65,14 @@ print(json.dumps(t))")
 
             aws ecs register-task-definition \
               --cli-input-json "\$NEW_TASK_DEF" \
-              --region ${AWS_REGION}
+              --region ${env.AWS_REGION}
 
             aws ecs update-service \
-              --cluster ${ECS_CLUSTER} \
-              --service ${ECS_SERVICE} \
-              --task-definition ${TASK_FAMILY} \
+              --cluster ${env.ECS_CLUSTER} \
+              --service ${env.ECS_SERVICE} \
+              --task-definition ${env.TASK_FAMILY} \
               --force-new-deployment \
-              --region ${AWS_REGION}
+              --region ${env.AWS_REGION}
           """
         }
       }
@@ -86,9 +86,9 @@ print(json.dumps(t))")
         ]]) {
           sh """
             aws ecs wait services-stable \
-              --cluster ${ECS_CLUSTER} \
-              --services ${ECS_SERVICE} \
-              --region ${AWS_REGION}
+              --cluster ${env.ECS_CLUSTER} \
+              --services ${env.ECS_SERVICE} \
+              --region ${env.AWS_REGION}
           """
         }
       }
@@ -104,8 +104,9 @@ print(json.dumps(t))")
       echo "Deployment failed - Build #${env.BUILD_NUMBER}"
     }
     always {
-      sh "docker rmi ${ECR_REPO}:${IMAGE_TAG} || true"
-      sh "docker rmi ${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG} || true"
+      // Added 'env.' prefix here to fix the "No such property" crash
+      sh "docker rmi ${env.ECR_REPO}:${env.IMAGE_TAG} || true"
+      sh "docker rmi ${env.ECR_REGISTRY}/${env.ECR_REPO}:${env.IMAGE_TAG} || true"
     }
   }
 }
