@@ -104,15 +104,12 @@ print(json.dumps(t))")
       echo "Deployment failed - Build #${env.BUILD_NUMBER}"
     }
     always {
-      // Allocate an executor safely using Declarative syntax
-      agent {
-        node {
-          label 'any'
+      script {
+        // Explicitly requests an available agent workspace node context
+        node('built-in || any') {
+          sh "docker rmi ${env.ECR_REPO}:${env.IMAGE_TAG} || true"
+          sh "docker rmi ${env.ECR_REGISTRY}/${env.ECR_REPO}:${env.IMAGE_TAG} || true"
         }
-      }
-      steps {
-        sh "docker rmi ${env.ECR_REPO}:${env.IMAGE_TAG} || true"
-        sh "docker rmi ${env.ECR_REGISTRY}/${env.ECR_REPO}:${env.IMAGE_TAG} || true"
       }
     }
   }
