@@ -104,8 +104,13 @@ print(json.dumps(t))")
       echo "Deployment failed - Build #${env.BUILD_NUMBER}"
     }
     always {
-      // Wrapped in a node block so 'sh' steps have an execution context after a restart
-      node {
+      // Allocate an executor safely using Declarative syntax
+      agent {
+        node {
+          label 'any'
+        }
+      }
+      steps {
         sh "docker rmi ${env.ECR_REPO}:${env.IMAGE_TAG} || true"
         sh "docker rmi ${env.ECR_REGISTRY}/${env.ECR_REPO}:${env.IMAGE_TAG} || true"
       }
