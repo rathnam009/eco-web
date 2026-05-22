@@ -3,7 +3,7 @@ pipeline {
 
   environment {
     AWS_REGION   = 'us-east-1'
-    ECR_REGISTRY = '://amazonaws.com'
+    ECR_REGISTRY = '651770526874.dkr.ecr.us-east-1.amazonaws.com'
     ECR_REPO     = 'my-frontend'
     ECS_CLUSTER  = 'my-frontend-cluster'
     ECS_SERVICE  = 'my-frontend-service'
@@ -33,7 +33,6 @@ pipeline {
         ]]) {
           sh """
             aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
-
             docker tag ${ECR_REPO}:${IMAGE_TAG} ${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG}
             docker push ${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG}
           """
@@ -57,7 +56,7 @@ pipeline {
             NEW_TASK_DEF=\$(echo \$TASK_DEF | python3 -c "
 import sys, json
 t = json.load(sys.stdin)['taskDefinition']
-t['containerDefinitions'][0]['image'] = ''\$IMAGE_URI''
+t['containerDefinitions'][0]['image'] = '\$IMAGE_URI'
 for k in ['taskDefinitionArn','revision','status',
           'requiresAttributes','compatibilities',
           'registeredAt','registeredBy']:
@@ -106,6 +105,7 @@ print(json.dumps(t))")
     }
     always {
       sh "docker rmi ${ECR_REPO}:${IMAGE_TAG} || true"
+      sh "docker rmi ${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG} || true"
     }
   }
 }
