@@ -3,7 +3,7 @@ pipeline {
 
   environment {
     AWS_REGION   = 'us-east-1'
-    ECR_REGISTRY = '651770526874.dkr.ecr.us-east-1.amazonaws.com'
+    ECR_REGISTRY = '://amazonaws.com'
     ECR_REPO     = 'my-frontend'
     ECS_CLUSTER  = 'my-frontend-cluster'
     ECS_SERVICE  = 'my-frontend-service'
@@ -104,9 +104,11 @@ print(json.dumps(t))")
       echo "Deployment failed - Build #${env.BUILD_NUMBER}"
     }
     always {
-      // Added 'env.' prefix here to fix the "No such property" crash
-      sh "docker rmi ${env.ECR_REPO}:${env.IMAGE_TAG} || true"
-      sh "docker rmi ${env.ECR_REGISTRY}/${env.ECR_REPO}:${env.IMAGE_TAG} || true"
+      // Wrapped in a node block so 'sh' steps have an execution context after a restart
+      node {
+        sh "docker rmi ${env.ECR_REPO}:${env.IMAGE_TAG} || true"
+        sh "docker rmi ${env.ECR_REGISTRY}/${env.ECR_REPO}:${env.IMAGE_TAG} || true"
+      }
     }
   }
 }
